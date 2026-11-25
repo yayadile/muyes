@@ -359,6 +359,35 @@ void main() {
       expect(await dao.countUnread(), 0);
     });
 
+    test('Insight: re-generate tidak me-reset isRead (id deterministik)', () async {
+      final dao = InsightDao(db);
+      final insight = Insight(
+        id: 'makan:terlalu-sedikit:2026-11-20',
+        type: InsightType.eatingPattern,
+        level: InsightLevel.warning,
+        title: 'Makan cuma 1x sehari 2 hari',
+        body: 'Pola ini kalau berlanjut...',
+        confidence: InsightConfidence.sedang,
+        createdAt: DateTime(2026, 11, 20, 20),
+      );
+
+      // Insert baru: isRead default false.
+      await dao.upsert(insight);
+      expect((await dao.getById(insight.id))!.isRead, isFalse);
+
+      // Re-generate (mis. ada log baru) setelah dibaca: status baca tetap.
+      await dao.markRead(insight.id);
+      await dao.upsert(insight);
+      expect((await dao.getById(insight.id))!.isRead, isTrue);
+      expect(await dao.countUnread(), 0);
+    });
+
+    test('watchBoolSetting mengalirkan nilai sekarang', () async {
+      expect(await db.watchBoolSetting(SettingKeys.fastingMode).first, isFalse);
+      await db.setBoolSetting(SettingKeys.fastingMode, true);
+      expect(await db.watchBoolSetting(SettingKeys.fastingMode).first, isTrue);
+    });
+
     test('Setting key-value: fasting mode default OFF', () async {
       expect(
         await db.getBoolSetting(SettingKeys.fastingMode),

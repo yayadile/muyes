@@ -164,6 +164,14 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setBoolSetting(String key, bool value) =>
       setSetting(key, value.toString());
 
+  /// Versi live [getBoolSetting] — dipakai toggle yang mengalir ke AI,
+  /// mis. Mode Puasa (spec §5.5D).
+  Stream<bool> watchBoolSetting(String key, {bool defaultValue = false}) {
+    return (select(appSettings)..where((t) => t.key.equals(key)))
+        .watchSingleOrNull()
+        .map((row) => row == null ? defaultValue : row.value == 'true');
+  }
+
   Future<void> deleteSetting(String key) async {
     await (delete(appSettings)..where((t) => t.key.equals(key))).go();
   }
@@ -305,5 +313,7 @@ InsightsCompanion _insightCompanion(Insight insight) => InsightsCompanion(
   evidenceLogIds: Value(insight.evidenceLogIds),
   periodDays: Value(insight.periodDays),
   createdAt: Value(insight.createdAt),
-  isRead: Value(insight.isRead),
+  // `isRead` sengaja absent: insert baru pakai default false, tapi upsert
+  // ulang (re-generate tiap ada log baru) TIDAK me-reset yang sudah dibaca.
+  isRead: const Value.absent(),
 );

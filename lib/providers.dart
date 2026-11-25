@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'ai/ai_types.dart';
+import 'ai/analyzer.dart';
+import 'ai/weekly_summary.dart';
 import 'data/database.dart';
 import 'models/food_log.dart';
 import 'models/mules_log.dart';
@@ -117,4 +120,88 @@ class CalendarMonth extends Notifier<DateTime> {
 
 final calendarMonthProvider = NotifierProvider<CalendarMonth, DateTime>(
   CalendarMonth.new,
+);
+
+// ---- AI lokal (spec §5.5) ----
+
+/// Rentang data yang dibaca AI: 30 hari terakhir (spec: analisa 7 & 30 hari).
+const aiWindowDays = 30;
+
+/// Toggle "Mode Puasa / IF" dari Settings (spec §5.5D), default OFF.
+final fastingModeProvider = StreamProvider<bool>(
+  (ref) =>
+      ref.watch(appDatabaseProvider).watchBoolSetting(SettingKeys.fastingMode),
+);
+
+/// Log makan 30 hari terakhir — bahan analisa AI.
+final aiFoodLogsProvider = StreamProvider<List<FoodLog>>(
+  (ref) => ref.watch(foodLogDaoProvider).watchLastDays(aiWindowDays),
+);
+
+/// Log eek 30 hari terakhir — bahan analisa AI.
+final aiPoopLogsProvider = StreamProvider<List<PoopLog>>(
+  (ref) => ref.watch(poopLogDaoProvider).watchLastDays(aiWindowDays),
+);
+
+/// Log mules 30 hari terakhir — bahan analisa AI.
+final aiMulesLogsProvider = StreamProvider<List<MulesLog>>(
+  (ref) => ref.watch(mulesLogDaoProvider).watchLastDays(aiWindowDays),
+);
+
+/// Input gabungan buat semua rule AI (spec §5.5).
+final aiInputProvider = Provider.autoDispose<AsyncValue<MuyesAiInput>>((ref) {
+  final food = ref.watch(aiFoodLogsProvider);
+  final poop = ref.watch(aiPoopLogsProvider);
+  final mules = ref.watch(aiMulesLogsProvider);
+  final fasting = ref.watch(fastingModeProvider);
+
+  for (final async in [food, poop, mules, fasting]) {
+    if (async.hasError) {
+      return AsyncError(async.error!, async.stackTrace ?? StackTrace.current);
+    }
+  }
+  if (!food.hasValue ||
+      !poop.hasValue ||
+      !mules.hasValue ||
+      !fasting.hasValue) {
+    return const AsyncLoading();
+  }
+
+  return AsyncData(
+    MuyesAiInput(
+      food: food.value!,
+      poop: poop.value!,
+      mules: mules.value!,
+      now: DateTime.now(),
+      fastingMode: fasting.value!,
+    ),
+  );
+});
+
+/// Hasil analisa lengkap 7 hari + korelasi 30 hari (halaman Insights).
+///
+/// Hasilnya langsung disimpan ke tabel `insights` (spec §6) — id insight
+/// deterministik, jadi re-generate tiap ada log baru tidak menumpuk duplikat.
+final aiAnalysisProvider = Provider.autoDispose<AsyncValue<AiAnalysis>>((ref) {
+  final dao = ref.read(insightDaoProvider);
+  return ref.watch(aiInputProvider).whenData((input) {
+    final analysis = MuyesAnalyzer(input).analyze(days: 7, thirtyDays: true);
+    Future.microtask(() => dao.upsertAll(analysis.insights));
+    return analysis;
+  });
+});
+
+/// Ringkasan mingguan terstruktur buat kartu di Insights (spec §5.5C).
+final aiWeeklySummaryProvider = Provider.autoDispose<AsyncValue<WeeklySummary>>(
+  (ref) => ref.watch(aiInputProvider).whenData((input) => buildWeeklySummary(input)),
+);
+
+/// Status perut hari ini, dari AI (Home, spec §5.3).
+final stomachStatusProvider = Provider.autoDispose<AsyncValue<StomachStatus>>(
+  (ref) => ref.watch(aiInputProvider).whenData(stomachStatusForToday),
+);
+
+/// Status makan hari ini, dari AI (Home, spec §5.3).
+final eatingStatusProvider = Provider.autoDispose<AsyncValue<StomachStatus>>(
+  (ref) => ref.watch(aiInputProvider).whenData(eatingStatusForToday),
 );

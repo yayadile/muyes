@@ -195,7 +195,7 @@ Insight weeklySummaryInsight(MuyesAiInput input, {int days = 7}) {
   }
 
   // 1 insight utama minggu ini.
-  final mainInsight = _mainInsightLine(input, summary, days: days);
+  final mainInsight = mainInsightLine(input, summary, days: days);
   if (mainInsight != null) lines.add(mainInsight);
 
   return Insight(
@@ -225,8 +225,9 @@ String _level(WeeklySummary summary, int days) {
   return diarrhea >= 3 ? InsightLevel.warning : InsightLevel.info;
 }
 
-/// Satu kalimat paling penting minggu ini.
-String? _mainInsightLine(
+/// Satu kalimat paling penting minggu ini (spec §5.5C) — dipakai halaman
+/// Insights di kartu Ringkasan Mingguan.
+String? mainInsightLine(
   MuyesAiInput input,
   WeeklySummary summary, {
   required int days,

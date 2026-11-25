@@ -193,6 +193,7 @@ Kalau data kurang dari 3 hari / <5 log eek, tampilkan: "Data masih sedikit, insi
 AI harus tahan data kosong (karena Bristol + detail lain opsional): kalau Bristol kosong, skip analisa yang butuh Bristol (distribusi Bristol, diare Bristol 6-7, konstipasi Bristol 1-2) dan cuma pakai frekuensi / gap waktu. Kalau mules kosong, skip korelasi mules. Jangan pernah anggap field kosong = 0 / normal. Kalau insight jadi terbatas karena banyak field kosong, bilang jujur: "Insight terbatas karena Bristol jarang diisi — isi Bristol biar analisanya lebih akurat." Jangan bikin insight ngarang dari data yang nggak ada.
 Jangan pernah kasih diagnosis penyakit ("kamu kena X"). Bahasanya selalu pola + kemungkinan + saran umum + "pertimbangkan ke dokter" untuk yang merah.
 Semua teks insight dalam Bahasa Indonesia, santai, tidak menakut-nakuti.
+Akses halaman Insights (keputusan Phase 5): bottom nav tetap 3 tab (Beranda / Riwayat / Pengaturan per §8.1) — Insights dibuka dari (1) ikon ✨ di header Home dan (2) tap kartu "Kata AI Hari Ini" di Home. Insight di-generate ulang tiap ada log baru (watch stream 30 hari → analyzer → upsert ke tabel insights, id deterministik tanpa duplikat; status "sudah dibaca" tidak ke-reset saat re-generate).
 5.6 Settings / Data
 Export data (CSV / JSON) — untuk backup
 Import data (dari export sebelumnya)

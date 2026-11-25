@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:muyes/models/food_log.dart';
 import 'package:muyes/models/poop_log.dart';
 import 'package:muyes/models/timeline_entry.dart';
 import 'package:muyes/screens/calendar_screen.dart';
 import 'package:muyes/screens/history_screen.dart';
 import 'package:muyes/screens/home_screen.dart';
+import 'package:muyes/screens/insights_screen.dart';
 import 'package:muyes/utils/date_utils.dart';
 import 'package:muyes/utils/day_summary.dart';
 
@@ -429,6 +431,200 @@ void main() {
       await tester.tap(find.byIcon(Icons.chevron_right));
       await tester.pump();
       expect(find.text(thisMonth), findsOneWidget);
+    });
+  });
+
+  group('InsightsScreen (spec §5.5)', () {
+    /// Jendela ekstra tinggi — semua kartu Insights harus ke-render
+    /// (ListView lazy, jadi viewport harus cukup besar).
+    void useHugeWindow(WidgetTester tester) {
+      tester.view.physicalSize = const Size(900, 6000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+    }
+
+    /// Pola spec §10: makan pedas 4-5, 6-8 jam kemudian mules + diare.
+    final now = DateTime(2026, 11, 25, 20);
+
+    List<FoodLog> spicySchedule() => [
+      makeFood(
+        id: 'f1',
+        eatenAt: DateTime(2026, 11, 20, 12),
+        foodName: 'Seblak pedas level 5',
+        categories: const [FoodCategories.pedas],
+        spicyLevel: 5,
+      ),
+      makeFood(
+        id: 'f2',
+        eatenAt: DateTime(2026, 11, 21, 12),
+        foodName: 'Ayam geprek sambal',
+        categories: const [FoodCategories.pedas],
+        spicyLevel: 4,
+      ),
+      makeFood(
+        id: 'f3',
+        eatenAt: DateTime(2026, 11, 22, 12),
+        foodName: 'Mie pedas level 5',
+        categories: const [FoodCategories.pedas],
+        spicyLevel: 5,
+      ),
+    ];
+
+    List<PoopLog> diarrheaAfter() => [
+      makePoop(id: 'p1', poopedAt: DateTime(2026, 11, 20, 19), bristol: 6, painLevel: 4),
+      makePoop(id: 'p2', poopedAt: DateTime(2026, 11, 21, 20), bristol: 4, painLevel: 3),
+      makePoop(id: 'p3', poopedAt: DateTime(2026, 11, 22, 20), bristol: 6, painLevel: 3),
+    ];
+
+    testWidgets('2 section terpisah + korelasi "Pedas" dari data dummy', (
+      tester,
+    ) async {
+      useHugeWindow(tester);
+      await tester.pumpWidget(
+        wrapScreenWithData(
+          const InsightsScreen(),
+          food: spicySchedule(),
+          poop: diarrheaAfter(),
+          now: now,
+        ),
+      );
+      await settle(tester);
+
+      // 2 section terpisah (spec §5.5D: pola makan vs pola eek).
+      expect(find.text('Pola Makan'), findsOneWidget);
+      expect(find.text('Pola Eek'), findsOneWidget);
+      expect(find.text('Ringkasan 7 Hari Terakhir'), findsOneWidget);
+
+      // Korelasi pedas (spec §9: minimal 1 korelasi benar dari data dummy).
+      expect(find.text('Kemungkinan pemicu: Pedas'), findsOneWidget);
+      expect(find.textContaining('3 dari 3'), findsWidgets);
+      expect(find.textContaining('Keyakinan:'), findsWidgets);
+
+      // Tombol bukti ada di kartu.
+      expect(find.text('Kenapa AI bilang ini?'), findsWidgets);
+    });
+
+    testWidgets('"Kenapa AI bilang ini?" menampilkan log mentah', (tester) async {
+      useHugeWindow(tester);
+      await tester.pumpWidget(
+        wrapScreenWithData(
+          const InsightsScreen(),
+          food: spicySchedule(),
+          poop: diarrheaAfter(),
+          now: now,
+        ),
+      );
+      await settle(tester);
+
+      await tester.tap(find.text('Kenapa AI bilang ini?').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Sheet bukti: judul + log mentah dari catatan user (LogTimeline).
+      expect(
+        find.text(
+          'Ini data mentah dari catatanmu yang dipakai AI — '
+          'bukan data dari luar.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(ListTile), findsWidgets);
+    });
+
+    testWidgets('darah → kartu alert merah di Pola Eek (spec §9)', (tester) async {
+      useHugeWindow(tester);
+      await tester.pumpWidget(
+        wrapScreenWithData(
+          const InsightsScreen(),
+          poop: [
+            makePoop(id: 'p1', poopedAt: DateTime(2026, 11, 24, 9), bristol: 4),
+            makePoop(
+              id: 'p2',
+              poopedAt: DateTime(2026, 11, 25, 9),
+              hasBlood: true,
+            ),
+          ],
+          now: now,
+        ),
+      );
+      await settle(tester);
+
+      expect(find.text('Ada darah di eek'), findsOneWidget);
+      expect(find.text('Perlu perhatian'), findsWidgets);
+      expect(find.textContaining('pertimbangkan konsultasi ke dokter'), findsWidgets);
+    });
+
+    testWidgets('data kosong → catatan jujur, bukan insight ngarang', (
+      tester,
+    ) async {
+      useHugeWindow(tester);
+      await tester.pumpWidget(wrapScreenWithData(const InsightsScreen()));
+      await settle(tester);
+
+      expect(find.textContaining('Data masih sedikit'), findsOneWidget);
+      expect(find.text('Pola makan belum kebaca'), findsOneWidget);
+      expect(
+        find.textContaining('Catat makan 3 hari dulu'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('pola makan abnormal dari FoodLog doang → warning kuning', (
+      tester,
+    ) async {
+      useHugeWindow(tester);
+      // 4 hari data makan, tiap hari cuma 1x → warning skip-makan (spec §5.5D).
+      await tester.pumpWidget(
+        wrapScreenWithData(
+          const InsightsScreen(),
+          food: [
+            makeFood(id: 'f1', eatenAt: DateTime(2026, 11, 22, 12)),
+            makeFood(id: 'f2', eatenAt: DateTime(2026, 11, 23, 12)),
+            makeFood(id: 'f3', eatenAt: DateTime(2026, 11, 24, 12)),
+            makeFood(id: 'f4', eatenAt: DateTime(2026, 11, 25, 12)),
+          ],
+          now: now,
+        ),
+      );
+      await settle(tester);
+
+      expect(find.text('Makan cuma 1x sehari 2 hari'), findsOneWidget);
+    });
+  });
+
+  group('HomeScreen — kartu AI (spec §5.3)', () {
+    testWidgets('"Kata AI Hari Ini" tampil + tap membuka Insights', (
+      tester,
+    ) async {
+      useTallWindow(tester);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      await tester.pumpWidget(
+        wrapScreenWithData(
+          const HomeScreen(),
+          poop: [
+            makePoop(
+              id: 'p1',
+              poopedAt: today.add(const Duration(hours: 9)),
+              hasBlood: true,
+            ),
+          ],
+        ),
+      );
+      await settle(tester);
+
+      // Status perut merah dari AI tampil di Home.
+      expect(find.text('Kata AI Hari Ini'), findsOneWidget);
+      expect(find.textContaining('ada darah'), findsWidgets);
+
+      // Tap kartu → halaman Insights.
+      await tester.tap(find.text('Kata AI Hari Ini'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Insights'), findsOneWidget);
+      expect(find.text('Pola Eek'), findsOneWidget);
     });
   });
 }

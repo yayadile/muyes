@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:muyes/ai/ai_types.dart';
+import 'package:muyes/ai/analyzer.dart';
+import 'package:muyes/ai/weekly_summary.dart';
 import 'package:muyes/models/food_log.dart';
 import 'package:muyes/models/mules_log.dart';
 import 'package:muyes/models/poop_log.dart';
@@ -20,12 +23,24 @@ Widget wrapScreenWithData(
   List<FoodLog> food = const [],
   List<PoopLog> poop = const [],
   List<MulesLog> mules = const [],
+  bool fastingMode = false,
+  DateTime? now,
 }) {
   final entries = <TimelineEntry>[
     ...food.map(TimelineEntry.food),
     ...poop.map(TimelineEntry.poop),
     ...mules.map(TimelineEntry.mules),
   ]..sort((a, b) => a.time.compareTo(b.time));
+
+  // Input AI statis — biar Home/Insights bisa dites tanpa DB nyata.
+  final input = MuyesAiInput(
+    food: food,
+    poop: poop,
+    mules: mules,
+    now: now ?? DateTime.now(),
+    fastingMode: fastingMode,
+  );
+  final analysis = MuyesAnalyzer(input).analyze(days: 7, thirtyDays: true);
 
   return ProviderScope(
     overrides: [
@@ -38,6 +53,18 @@ Widget wrapScreenWithData(
       // Timeline gabungan — langsung dari data statis juga.
       dayTimelineProvider.overrideWith(
         (ref) => AsyncData<List<TimelineEntry>>(entries),
+      ),
+      // Provider AI — statis, tanpa DB.
+      aiInputProvider.overrideWith((ref) => AsyncData(input)),
+      aiAnalysisProvider.overrideWith((ref) => AsyncData(analysis)),
+      aiWeeklySummaryProvider.overrideWith(
+        (ref) => AsyncData(buildWeeklySummary(input)),
+      ),
+      stomachStatusProvider.overrideWith(
+        (ref) => AsyncData(stomachStatusForToday(input)),
+      ),
+      eatingStatusProvider.overrideWith(
+        (ref) => AsyncData(eatingStatusForToday(input)),
       ),
     ],
     child: MaterialApp(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../ai/analyzer.dart' show StomachStatus;
 import '../models/timeline_entry.dart';
 import '../providers.dart';
 import '../theme.dart';
@@ -9,6 +10,7 @@ import '../widgets/duo_button.dart';
 import '../widgets/log_timeline.dart';
 import '../widgets/muyes_icons.dart';
 import '../widgets/time_field.dart';
+import 'insights_screen.dart';
 import 'log_food_screen.dart';
 import 'log_mules_screen.dart';
 import 'log_poop_screen.dart';
@@ -16,8 +18,8 @@ import 'log_poop_screen.dart';
 /// Home / Hari Ini (spec §5.3 + mock §8.1).
 ///
 /// Header orange "Hari Ini" + tanggal → kartu stats (count + terakhir) →
-/// kartu aksi (+ Eek / + Makan / + Mules) → timeline hari ini.
-/// Kartu "Status perut / Status makan (dari AI)" nyusul di Phase 5.
+/// kartu aksi (+ Eek / + Makan / + Mules) → kartu "Kata AI Hari Ini" →
+/// timeline hari ini. Kartu AI bisa dibuka ke halaman Insights.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -36,7 +38,8 @@ class HomeScreen extends ConsumerWidget {
             child: timeline.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(child: Text('Gagal: $error')),
-              data: (entries) => _HomeBody(entries: entries),
+              data: (entries) =>
+                  _HomeBody(entries: entries, showAiStatus: isToday),
             ),
           ),
         ],
@@ -95,6 +98,13 @@ class _HomeHeader extends ConsumerWidget {
                       ref.read(selectedDayProvider.notifier).goToToday(),
                 ),
               IconButton(
+                tooltip: 'Insights',
+                icon: const Icon(Icons.auto_awesome, color: Colors.white),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const InsightsScreen()),
+                ),
+              ),
+              IconButton(
                 tooltip: 'Ganti hari',
                 icon: const Icon(
                   Icons.calendar_today_rounded,
@@ -124,9 +134,13 @@ class _HomeHeader extends ConsumerWidget {
 }
 
 class _HomeBody extends ConsumerWidget {
-  const _HomeBody({required this.entries});
+  const _HomeBody({required this.entries, required this.showAiStatus});
 
   final List<TimelineEntry> entries;
+
+  /// Status AI cuma relevan buat hari ini (spec §5.3 "Status perut/makan
+  /// hari ini") — kalau lagi lihat hari lain, jangan tampilkan.
+  final bool showAiStatus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -151,6 +165,10 @@ class _HomeBody extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         const _ActionCard(),
+        if (showAiStatus) ...[
+          const SizedBox(height: 16),
+          const _AiStatusCard(),
+        ],
         const SizedBox(height: 20),
         const Padding(
           padding: EdgeInsets.only(left: 4, bottom: 8),
@@ -476,6 +494,121 @@ class _QuickButton extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Kartu "Kata AI Hari Ini" (spec §5.3): status perut + status makan dari
+/// AI lokal, plus akses ke halaman Insights. Warna status hijau/kuning/merah
+/// cuma dipakai untuk level waspada (spec §8.1).
+class _AiStatusCard extends ConsumerWidget {
+  const _AiStatusCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stomach = ref.watch(stomachStatusProvider);
+    final eating = ref.watch(eatingStatusProvider);
+
+    final statuses = <StomachStatus>[
+      ?stomach.value,
+      ?eating.value,
+    ];
+    if (statuses.isEmpty) {
+      // Masih loading / error — jangan tampilkan kartu biar Home tetap rapi.
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const InsightsScreen())),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('🤖', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Kata AI Hari Ini',
+                    style: TextStyle(
+                      fontFamily: kHeadingFont,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: MuyesColors.textDark,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: MuyesColors.textDark.withValues(alpha: 0.4),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              for (final (index, status) in statuses.indexed) ...[
+                if (index > 0) const SizedBox(height: 10),
+                _AiStatusRow(status: status),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AiStatusRow extends StatelessWidget {
+  const _AiStatusRow({required this.status});
+
+  final StomachStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.only(top: 5),
+          decoration: BoxDecoration(
+            color: statusColor(context, status.level),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${status.emoji} ${status.title}',
+                style: const TextStyle(
+                  fontFamily: kBodyFont,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: MuyesColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                status.detail,
+                style: TextStyle(
+                  fontFamily: kBodyFont,
+                  fontSize: 13,
+                  height: 1.4,
+                  color: MuyesColors.textDark.withValues(alpha: 0.75),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

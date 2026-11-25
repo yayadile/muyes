@@ -44,6 +44,15 @@ class FoodLogDao {
   Stream<List<FoodLog>> watchForDay(DateTime day) =>
       watchBetween(startOfDay(day), startOfNextDay(day));
 
+  /// Versi live dari [getLastDays] — bahan analisa AI (spec §5.5: 30 hari).
+  Stream<List<FoodLog>> watchLastDays(int days, {DateTime? now}) {
+    final end = now ?? DateTime.now();
+    return watchBetween(
+      startOfDay(end).subtract(Duration(days: days - 1)),
+      startOfNextDay(end),
+    );
+  }
+
   /// Versi live dari [getAll].
   Stream<List<FoodLog>> watchAll() {
     return (_db.select(_db.foodLogs)

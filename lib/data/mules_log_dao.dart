@@ -44,6 +44,15 @@ class MulesLogDao {
   Stream<List<MulesLog>> watchForDay(DateTime day) =>
       watchBetween(startOfDay(day), startOfNextDay(day));
 
+  /// Versi live dari [getLastDays] — bahan analisa AI (spec §5.5: 30 hari).
+  Stream<List<MulesLog>> watchLastDays(int days, {DateTime? now}) {
+    final end = now ?? DateTime.now();
+    return watchBetween(
+      startOfDay(end).subtract(Duration(days: days - 1)),
+      startOfNextDay(end),
+    );
+  }
+
   /// Versi live dari [getAll].
   Stream<List<MulesLog>> watchAll() {
     return (_db.select(_db.mulesLogs)
