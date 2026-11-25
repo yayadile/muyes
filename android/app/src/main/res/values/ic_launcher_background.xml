@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Orange brand Muyes (spec §8.1) — background adaptive icon. -->
+    <color name="ic_launcher_background">#FFA63D</color>
+</resources>

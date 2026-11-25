@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Muyes — Instagram story (completed design)</title>
+<style>
+  /* Poppins — same family used in the Figma file */
+  @font-face{font-family:Poppins;src:url('fonts/Poppins-Regular.ttf');font-weight:400}
+  @font-face{font-family:Poppins;src:url('fonts/Poppins-SemiBold.ttf');font-weight:600}
+  @font-face{font-family:Poppins;src:url('fonts/Poppins-Bold.ttf');font-weight:700}
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#333}
+  .a{position:absolute}
+
+  /* ── Story canvas: 1080 × 2085 (same as Figma node 138:9 "Home Page") ── */
+  .story{position:relative;width:1080px;height:2085px;overflow:hidden;
+         background:linear-gradient(180deg,#FFB55B 0%,#FFFFFF 100%);
+         font-family:Poppins,sans-serif}
+
+  /* ── "Today..."  (node 138:11) ── */
+  .today{left:57px;top:26px;width:400px;height:144px;
+         font:600 96px/144px Poppins;letter-spacing:-7.68px;color:#fff}
+
+  /* ── Stats card  (node 142:66) ── */
+  .stats{left:36px;top:192px;width:983px;height:434px;border-radius:50px;
+         background:linear-gradient(180deg,#FFFFFF 90.032%,#CECECE 106.22%);
+         box-shadow:0 4px 4px rgba(0,0,0,.25)}
+  .stats img.poop {left:97px; top:46px;width:120px;height:100px}
+  .stats img.face {left:437px;top:45px;width:119px;height:113px}
+  .stats img.muyes{left:751px;top:37px;width:134px;height:128px}
+  .num{top:165px;width:45px;height:81px;font:600 40px/60px Poppins;
+       letter-spacing:-3.2px;color:#8E8E8E}
+  .num.n1{left:148px}.num.n2{left:482px}.num.n3{left:816px}
+  .lastlabels,.lastvalues{top:227px;width:886px;height:177px;display:flex;
+       flex-direction:column;justify-content:center;
+       font:400 32px/48px Poppins;color:#000}
+  .lastlabels{left:52px}
+  .lastvalues{left:52px;text-align:right}
+
+  /* ── White panel  (nodes 138:10 / 144:186) ── */
+  .panel{left:39px;top:657px;width:1001px;height:1538px;overflow:hidden;
+         border-radius:100px 100px 0 0;background:#fff}
+  .tagline{left:133px;top:59px;width:735px;height:80px;
+           font:400 36px/80px Poppins;text-align:center;color:#000}
+  .rule{height:3px;background:#E88000;border-radius:3px}
+  .rule1{left:123px;top:145px;width:755px}
+  .rule2{left:142px;top:667px;width:755px}
+
+  /* Quick-log cards  (node 144:154 "Group 47") */
+  .qcard{top:179px;width:268px;height:346px;background:#fff;
+         border:4px solid #FFB65C;border-radius:50px}
+  .qcard.c1{left:64px}.qcard.c2{left:366px}.qcard.c3{left:668px}
+  .qcard img{position:absolute}
+  .qcard.c1 img{left:69px; top:73px; width:120px;height:100px}
+  .qcard.c2 img{left:76px; top:60px; width:119px;height:113px}
+  .qcard.c3 img{left:76px; top:46px; width:134px;height:128px}
+  .qlabel{top:387px;font:600 40px/53px Poppins;letter-spacing:-3.2px;color:#000;text-align:center}
+  .qlabel.l1{left:122px;width:147px}
+  .qlabel.l2{left:427px;width:147px}
+  .qlabel.l3{left:736px;width:154px}
+
+  /* Timeline section — completed: heading + rule + sample entries */
+  .tl-head{left:152px;top:581px;width:735px;height:80px;
+           font:400 36px/80px Poppins;text-align:center;color:#000}
+  .tl-list{left:64px;top:726px;width:873px}
+  .tl-row{height:90px;display:flex;align-items:center;
+          border-bottom:2px solid rgba(232,128,0,.14)}
+  .tl-row:last-child{border-bottom:none}
+  .tl-emoji{width:78px;font-size:44px;line-height:1}
+  .tl-mid{flex:1;min-width:0}
+  .tl-title{font:600 38px/44px Poppins;letter-spacing:-1.5px;color:#1B1B1B}
+  .tl-sub{font:400 26px/30px Poppins;color:#A5948A;margin-top:2px}
+  .tl-time{font:600 32px/44px Poppins;letter-spacing:-1px;color:#8E8E8E}
+
+  /* ── Bottom nav pill  (node 143:88) ── */
+  .nav{left:145px;top:1865px;width:789px;height:152px;border-radius:90px;
+       background:linear-gradient(181.46deg,#F4B870 47.37%,#E88000 105.29%)}
+  .nav svg{position:absolute;top:44px;width:64px;height:64px}
+  .nav svg.i1{left:75px}.nav svg.i2{left:364px}.nav svg.i3{left:651px}
+</style>
+</head>
+<body>
+<div class="story">
+
+  <!-- Today... -->
+  <div class="a today">Today...</div>
+
+  <!-- Stats card -->
+  <div class="a stats">
+    <img class="a poop"  src="assets/icon2.svg" alt="Meals">
+    <img class="a face"  src="assets/icon3.svg" alt="Poop">
+    <img class="a muyes" src="assets/icon4.svg" alt="Muyes">
+    <div class="a num n1">3</div>
+    <div class="a num n2">1</div>
+    <div class="a num n3">1</div>
+
+    <div class="a lastlabels">
+      <p>Last Meal</p>
+      <p>Last Poop</p>
+      <p>Last Muyes</p>
+    </div>
+    <div class="a lastvalues">
+      <p>19:56</p>
+      <p>20:15</p>
+      <p>16:45</p>
+    </div>
+  </div>
+
+  <!-- White panel -->
+  <div class="a panel">
+    <div class="a tagline">Track your meals, poop, and muyes!</div>
+    <div class="a rule rule1"></div>
+
+    <!-- Quick-log cards -->
+    <div class="a qcard c1"><img src="assets/icon2.svg" alt="Poop"></div>
+    <div class="a qcard c2"><img src="assets/icon3.svg" alt="Meals"></div>
+    <div class="a qcard c3"><img src="assets/icon4.svg" alt="Muyes"></div>
+    <div class="a qlabel l1">+ Poop</div>
+    <div class="a qlabel l2">+ Meals</div>
+    <div class="a qlabel l3">+ Muyes</div>
+
+    <!-- Timeline (completed) -->
+    <div class="a tl-head">Timeline</div>
+    <div class="a rule rule2"></div>
+    <div class="a tl-list">
+      <div class="tl-row">
+        <span class="tl-emoji">🍽️</span>
+        <div class="tl-mid">
+          <div class="tl-title">Bubur ayam</div>
+          <div class="tl-sub">Makan</div>
+        </div>
+        <span class="tl-time">07:30</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-emoji">🍽️</span>
+        <div class="tl-mid">
+          <div class="tl-title">Mie ayam level 3</div>
+          <div class="tl-sub">Makan · Pedas 3</div>
+        </div>
+        <span class="tl-time">12:30</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-emoji">⚡</span>
+        <div class="tl-mid">
+          <div class="tl-title">Mules ringan</div>
+          <div class="tl-sub">Mules</div>
+        </div>
+        <span class="tl-time">16:45</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-emoji">🍽️</span>
+        <div class="tl-mid">
+          <div class="tl-title">Nasi goreng</div>
+          <div class="tl-sub">Makan</div>
+        </div>
+        <span class="tl-time">19:56</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-emoji">💩</span>
+        <div class="tl-mid">
+          <div class="tl-title">Bristol 4</div>
+          <div class="tl-sub">Eek · Normal</div>
+        </div>
+        <span class="tl-time">20:15</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav pill -->
+  <div class="a nav">
+    <!-- Home -->
+    <svg class="i1" viewBox="0 0 64 64">
+      <defs><mask id="mHome">
+        <rect width="64" height="64" fill="#000"/>
+        <path fill="#fff" d="M32 5.5c1.1 0 2.2.4 3 1.2l20 17.3c1.6 1.4 2 3.8.8 5.6-.8 1.3-2.2 2-3.7 2h-.6v24.9c0 2.5-2 4.5-4.5 4.5h-12V43a3.5 3.5 0 0 0-7 0v18h-12c-2.5 0-4.5-2-4.5-4.5V31.6h-.6c-1.5 0-2.9-.7-3.7-2-1.2-1.8-.8-4.2.8-5.6l20-17.3c.8-.8 1.9-1.2 3-1.2z"/>
+      </mask></defs>
+      <rect width="64" height="64" fill="#fff" mask="url(#mHome)"/>
+    </svg>
+
+    <!-- Notes / history -->
+    <svg class="i2" viewBox="0 0 64 64">
+      <defs><mask id="mNotes">
+        <rect width="64" height="64" fill="#000"/>
+        <rect x="13" y="6" width="38" height="52" rx="11" fill="#fff"/>
+        <rect x="27" y="16" width="17" height="6.5" rx="3.25" fill="#000"/>
+        <rect x="27" y="28" width="17" height="6.5" rx="3.25" fill="#000"/>
+        <circle cx="23" cy="45" r="9.5" fill="#000"/>
+        <rect x="33" y="41.5" width="12" height="7" rx="3.5" fill="#000"/>
+      </mask></defs>
+      <rect width="64" height="64" fill="#fff" mask="url(#mNotes)"/>
+    </svg>
+
+    <!-- Profile -->
+    <svg class="i3" viewBox="0 0 64 64">
+      <defs><mask id="mProfile">
+        <rect width="64" height="64" fill="#000"/>
+        <circle cx="32" cy="32" r="31" fill="#fff"/>
+        <circle cx="32" cy="24.5" r="10.5" fill="#000"/>
+        <circle cx="32" cy="53" r="15.5" fill="#000"/>
+      </mask></defs>
+      <rect width="64" height="64" fill="#fff" mask="url(#mProfile)"/>
+    </svg>
+  </div>
+
+</div>
+</body>
+</html>
