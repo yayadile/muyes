@@ -275,6 +275,163 @@ void main() {
       );
       expect(results, isEmpty);
     });
+
+    test('pemicu yang sering dimakan tapi rate-nya sama = bukan sinyal', () {
+      // Pedas dimakan 8x (2x diikuti mules). Makanan lain juga 8x dengan
+      // rate sama — artinya pedas nggak beda dari makanan lain.
+      final foodLogs = <FoodLog>[];
+      final poopLogs = <PoopLog>[];
+      for (var i = 0; i < 2; i++) {
+        final day = 20 + i;
+        foodLogs.add(
+          food(
+            DateTime(2026, 11, day, 12),
+            'Seblak $i',
+            categories: const [FoodCategories.pedas],
+            spicy: 5,
+          ),
+        );
+        foodLogs.add(food(DateTime(2026, 11, day, 9), 'Nasi uduk $i'));
+        poopLogs.add(
+          poop(DateTime(2026, 11, day, 19), bristol: 6, pain: 4),
+        );
+      }
+      for (var i = 0; i < 6; i++) {
+        foodLogs.add(
+          food(
+            DateTime(2026, 11, 23, 8 + i),
+            'Seblak $i',
+            categories: const [FoodCategories.pedas],
+            spicy: 5,
+          ),
+        );
+        foodLogs.add(food(DateTime(2026, 11, 24, 8 + i), 'Roti $i'));
+      }
+      final results = findCorrelations(
+        inputWith(foodLogs: foodLogs, poopLogs: poopLogs),
+        days: 7,
+      );
+      expect(results.where((r) => r.trigger == TriggerKind.pedas), isEmpty);
+    });
+
+    test('denominator jujur: eksposur & pembanding muncul di body', () {
+      // 4 kejadian, semuanya didahului pedas — tapi pedas cuma 4 dari 12
+      // log makan, dan makanan lain 0 dari 8x. Body harus nunjukin itu.
+      final foodLogs = <FoodLog>[];
+      final poopLogs = <PoopLog>[];
+      for (var i = 0; i < 4; i++) {
+        foodLogs.add(
+          food(
+            DateTime(2026, 11, 20 + i, 12),
+            'Ayam geprek $i',
+            categories: const [FoodCategories.pedas],
+            spicy: 4,
+          ),
+        );
+        // Setelah episode → bukan pemicu.
+        foodLogs.add(food(DateTime(2026, 11, 20 + i, 22, 30), 'Roti $i'));
+        poopLogs.add(
+          poop(DateTime(2026, 11, 20 + i, 19), bristol: 6, pain: 4),
+        );
+      }
+      for (var i = 0; i < 4; i++) {
+        foodLogs.add(food(DateTime(2026, 11, 24, 6 + i), 'Bubur $i'));
+      }
+
+      final results = findCorrelations(
+        inputWith(foodLogs: foodLogs, poopLogs: poopLogs),
+        days: 7,
+      );
+      final pedas = results.firstWhere((r) => r.trigger == TriggerKind.pedas);
+      expect(pedas.hitCount, 4);
+      expect(pedas.totalEpisodes, 4);
+      expect(pedas.exposureCount, 4);
+      expect(pedas.exposureHits, 4);
+      expect(pedas.otherExposureCount, 8);
+      expect(pedas.otherExposureHits, 0);
+      expect(pedas.body, contains('kamu makan Pedas 4x'));
+      expect(pedas.body, contains('makanan lain 0 dari 8x'));
+      // 4 dari 4 eksposur, tapi sampel kecil → tetap Rendah (jujur).
+      expect(pedas.confidence, InsightConfidence.rendah);
+    });
+
+    test('pemicu yang selalu bareng digabung, bukan kartu kembar', () {
+      // "Ayam geprek goreng" match Pedas DAN Gorengan di kejadian yang sama.
+      final foodLogs = <FoodLog>[
+        for (var i = 0; i < 3; i++)
+          food(
+            DateTime(2026, 11, 20 + i, 12),
+            'Ayam geprek goreng $i',
+            categories: const [FoodCategories.pedas, FoodCategories.gorengan],
+            spicy: 4,
+          ),
+        for (var i = 0; i < 2; i++)
+          food(DateTime(2026, 11, 20 + i, 22, 30), 'Roti $i'),
+      ];
+      final poopLogs = <PoopLog>[
+        for (var i = 0; i < 3; i++)
+          poop(DateTime(2026, 11, 20 + i, 19), bristol: 6, pain: 4),
+      ];
+
+      final results = findCorrelations(
+        inputWith(foodLogs: foodLogs, poopLogs: poopLogs),
+        days: 7,
+      );
+      expect(results, hasLength(1));
+      expect(results.single.trigger, TriggerKind.pedas);
+      expect(results.single.coTriggers, contains(TriggerKind.gorengan));
+      expect(results.single.isConfounded, isTrue);
+      expect(results.single.body, contains('sering muncul bareng'));
+    });
+
+    test('confidence Tinggi butuh sampel banyak & jelas di atas baseline', () {
+      final foodLogs = <FoodLog>[];
+      final poopLogs = <PoopLog>[];
+      // 8 episode, masing-masing didahului pedas 6 jam sebelumnya.
+      for (var i = 0; i < 8; i++) {
+        foodLogs.add(
+          food(
+            DateTime(2026, 11, 10 + i, 14),
+            'Seblak $i',
+            categories: const [FoodCategories.pedas],
+            spicy: 5,
+          ),
+        );
+        // Setelah episode → bukan pemicu buat makanan pembanding.
+        foodLogs.add(food(DateTime(2026, 11, 10 + i, 22, 30), 'Roti $i'));
+        poopLogs.add(
+          poop(DateTime(2026, 11, 10 + i, 20), bristol: 6, pain: 4),
+        );
+      }
+      // Eksposur pedas tambahan tanpa episode → denominator gede.
+      for (var i = 0; i < 5; i++) {
+        foodLogs.add(
+          food(
+            DateTime(2026, 11, 18, 6 + i),
+            'Seblak extra $i',
+            categories: const [FoodCategories.pedas],
+            spicy: 5,
+          ),
+        );
+      }
+      for (var i = 0; i < 7; i++) {
+        foodLogs.add(food(DateTime(2026, 11, 23, 6 + i), 'Bubur $i'));
+      }
+
+      final results = findCorrelations(
+        inputWith(foodLogs: foodLogs, poopLogs: poopLogs),
+        days: 30,
+      );
+      final pedas = results.firstWhere((r) => r.trigger == TriggerKind.pedas);
+      expect(pedas.exposureCount, 13);
+      expect(pedas.exposureHits, 8);
+      expect(pedas.confidence, InsightConfidence.tinggi);
+    });
+
+    test('Wilson lower bound: sampel kecil lebih rendah', () {
+      expect(wilsonLowerBound(2, 2), lessThan(wilsonLowerBound(8, 9)));
+      expect(wilsonLowerBound(0, 0), 0);
+    });
   });
 
   group('AbnormalDetector (spec §5.5B)', () {

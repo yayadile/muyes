@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:muyes/ai/ai_types.dart';
 import 'package:muyes/ai/analyzer.dart';
 import 'package:muyes/ai/weekly_summary.dart';
+import 'package:muyes/data/database.dart';
 import 'package:muyes/models/food_log.dart';
 import 'package:muyes/models/mules_log.dart';
 import 'package:muyes/models/poop_log.dart';
 import 'package:muyes/models/timeline_entry.dart';
 import 'package:muyes/providers.dart';
+import 'package:muyes/utils/date_utils.dart';
 
 /// Helper test widget Muyes.
 ///
@@ -18,18 +20,37 @@ import 'package:muyes/providers.dart';
 /// stream asli bikin deadlock (spinner muter terus / timer nyangkut).
 /// Solusi: override semua provider stream dengan data statis — widget test
 /// jadi deterministik, dan DB tetap dites terpisah di test DAO.
+///
+/// Untuk layar yang MEMANG menyentuh DB (mis. Settings — toggle + seed),
+/// kasih [database] = DB in-memory; provider stream-nya dibaca dari DB itu.
 Widget wrapScreenWithData(
   Widget screen, {
   List<FoodLog> food = const [],
   List<PoopLog> poop = const [],
   List<MulesLog> mules = const [],
   bool fastingMode = false,
+  bool demoSeeded = false,
   DateTime? now,
+  DateTime? selectedDay,
+  AppDatabase? database,
 }) {
+  // Kalau [selectedDay] di-set, provider "hari ini" difilter ke hari itu
+  // (meniru perilaku asli) — provider "semua log" tetap data lengkap.
+  final day = selectedDay;
+  final dayFood = day == null
+      ? food
+      : food.where((l) => isSameDay(l.eatenAt, day)).toList(growable: false);
+  final dayPoop = day == null
+      ? poop
+      : poop.where((l) => isSameDay(l.poopedAt, day)).toList(growable: false);
+  final dayMules = day == null
+      ? mules
+      : mules.where((l) => isSameDay(l.feltAt, day)).toList(growable: false);
+
   final entries = <TimelineEntry>[
-    ...food.map(TimelineEntry.food),
-    ...poop.map(TimelineEntry.poop),
-    ...mules.map(TimelineEntry.mules),
+    ...dayFood.map(TimelineEntry.food),
+    ...dayPoop.map(TimelineEntry.poop),
+    ...dayMules.map(TimelineEntry.mules),
   ]..sort((a, b) => a.time.compareTo(b.time));
 
   // Input AI statis — biar Home/Insights bisa dites tanpa DB nyata.
@@ -44,9 +65,9 @@ Widget wrapScreenWithData(
 
   return ProviderScope(
     overrides: [
-      dayFoodLogsProvider.overrideWith((ref) => Stream.value(food)),
-      dayPoopLogsProvider.overrideWith((ref) => Stream.value(poop)),
-      dayMulesLogsProvider.overrideWith((ref) => Stream.value(mules)),
+      dayFoodLogsProvider.overrideWith((ref) => Stream.value(dayFood)),
+      dayPoopLogsProvider.overrideWith((ref) => Stream.value(dayPoop)),
+      dayMulesLogsProvider.overrideWith((ref) => Stream.value(dayMules)),
       allFoodLogsProvider.overrideWith((ref) => Stream.value(food)),
       allPoopLogsProvider.overrideWith((ref) => Stream.value(poop)),
       allMulesLogsProvider.overrideWith((ref) => Stream.value(mules)),
@@ -66,6 +87,15 @@ Widget wrapScreenWithData(
       eatingStatusProvider.overrideWith(
         (ref) => AsyncData(eatingStatusForToday(input)),
       ),
+      // Setting: aksi nulis ke DB in-memory [database] kalau ada, tapi
+      // tampilan pakai nilai statis — JANGAN pernah expose stream Drift
+      // asli ke widget test (pending timer + FakeAsync = hang).
+      if (database != null) appDatabaseProvider.overrideWithValue(database),
+      fastingModeProvider.overrideWith((ref) => Stream.value(fastingMode)),
+      demoSeededProvider.overrideWith((ref) => Stream.value(demoSeeded)),
+      // Simulasi "pindah hari" di Home.
+      if (selectedDay != null)
+        selectedDayProvider.overrideWith(() => FixedSelectedDay(selectedDay)),
     ],
     child: MaterialApp(
       locale: const Locale('id'),
@@ -92,6 +122,16 @@ void useTallWindow(WidgetTester tester) {
   tester.view.physicalSize = const Size(900, 2200);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
+}
+
+/// [SelectedDay] dengan nilai awal bebas — buat simulasi "pindah hari".
+class FixedSelectedDay extends SelectedDay {
+  FixedSelectedDay(this._initial);
+
+  final DateTime _initial;
+
+  @override
+  DateTime build() => _initial;
 }
 
 /// FoodLog cepat untuk seed data test.

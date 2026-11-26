@@ -408,7 +408,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('Sate ayam'), findsOneWidget);
-      expect(find.text('🟢 Pola hari ini kelihatan normal'), findsOneWidget);
+      expect(find.text('Pola hari ini kelihatan normal'), findsOneWidget);
     });
 
     testWidgets('navigasi bulan sebelumnya / berikutnya', (tester) async {

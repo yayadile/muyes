@@ -9,6 +9,7 @@ import '../utils/date_utils.dart';
 import '../widgets/duo_button.dart';
 import '../widgets/log_timeline.dart';
 import '../widgets/muyes_icons.dart';
+import '../widgets/streamline_icons.dart';
 import '../widgets/time_field.dart';
 import 'insights_screen.dart';
 import 'log_food_screen.dart';
@@ -38,8 +39,11 @@ class HomeScreen extends ConsumerWidget {
             child: timeline.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(child: Text('Gagal: $error')),
-              data: (entries) =>
-                  _HomeBody(entries: entries, showAiStatus: isToday),
+              data: (entries) => _HomeBody(
+                entries: entries,
+                showAiStatus: isToday,
+                day: day,
+              ),
             ),
           ),
         ],
@@ -99,7 +103,11 @@ class _HomeHeader extends ConsumerWidget {
                 ),
               IconButton(
                 tooltip: 'Insights',
-                icon: const Icon(Icons.auto_awesome, color: Colors.white),
+                icon: const SlIconView(
+                  SlIcon.robot,
+                  size: 22,
+                  color: Colors.white,
+                ),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const InsightsScreen()),
                 ),
@@ -134,9 +142,16 @@ class _HomeHeader extends ConsumerWidget {
 }
 
 class _HomeBody extends ConsumerWidget {
-  const _HomeBody({required this.entries, required this.showAiStatus});
+  const _HomeBody({
+    required this.entries,
+    required this.showAiStatus,
+    required this.day,
+  });
 
   final List<TimelineEntry> entries;
+
+  /// Tanggal yang sedang dilihat (dari [selectedDayProvider]).
+  final DateTime day;
 
   /// Status AI cuma relevan buat hari ini (spec §5.3 "Status perut/makan
   /// hari ini") — kalau lagi lihat hari lain, jangan tampilkan.
@@ -148,9 +163,20 @@ class _HomeBody extends ConsumerWidget {
     final poopCount = entries.where((e) => e.poop != null).length;
     final mulesCount = entries.where((e) => e.mules != null).length;
 
-    final lastFood = _lastTime(entries, (e) => e.food != null);
-    final lastPoop = _lastTime(entries, (e) => e.poop != null);
-    final lastMules = _lastTime(entries, (e) => e.mules != null);
+    // Baris "Terakhir ..." itu dashboard: cari catatan terbaru SAMPAI
+    // tanggal yang dilihat (koreksi user, 26 Nov 2026) — jadi tetap kebaca
+    // walau pindah ke hari yang kosong. Kalau ganti tanggal → spesifik
+    // sampai tanggal itu.
+    final end = startOfNextDay(day);
+    final lastFood =
+        _latestUpTo(ref.watch(allFoodLogsProvider).value, (l) => l.eatenAt, end) ??
+        _lastTime(entries, (e) => e.food != null);
+    final lastPoop =
+        _latestUpTo(ref.watch(allPoopLogsProvider).value, (l) => l.poopedAt, end) ??
+        _lastTime(entries, (e) => e.poop != null);
+    final lastMules =
+        _latestUpTo(ref.watch(allMulesLogsProvider).value, (l) => l.feltAt, end) ??
+        _lastTime(entries, (e) => e.mules != null);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
@@ -200,6 +226,24 @@ class _HomeBody extends ConsumerWidget {
       if (test(entry) && (last == null || entry.time.isAfter(last))) {
         last = entry.time;
       }
+    }
+    return last;
+  }
+
+  /// Waktu catatan terbaru dari SEMUA log, dibatasi sampai [end]
+  /// (eksklusif). null = belum ada log sebelum [end]. List null (stream
+  /// masih loading) juga → null, nanti fallback ke log hari terpilih.
+  static DateTime? _latestUpTo<T>(
+    List<T>? logs,
+    DateTime Function(T) timeOf,
+    DateTime end,
+  ) {
+    if (logs == null) return null;
+    DateTime? last;
+    for (final log in logs) {
+      final time = timeOf(log);
+      if (!time.isBefore(end)) continue;
+      if (last == null || time.isAfter(last)) last = time;
     }
     return last;
   }
@@ -531,7 +575,7 @@ class _AiStatusCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Text('🤖', style: TextStyle(fontSize: 18)),
+                  const SlIconView(SlIcon.robot, size: 20),
                   const SizedBox(width: 8),
                   const Text(
                     'Kata AI Hari Ini',
@@ -569,17 +613,13 @@ class _AiStatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final (icon, color) = slStatusIcon(context, status.level);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 10,
-          height: 10,
-          margin: const EdgeInsets.only(top: 5),
-          decoration: BoxDecoration(
-            color: statusColor(context, status.level),
-            shape: BoxShape.circle,
-          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: SlIconView(icon, size: 18, color: color),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -587,7 +627,7 @@ class _AiStatusRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${status.emoji} ${status.title}',
+                status.title,
                 style: const TextStyle(
                   fontFamily: kBodyFont,
                   fontSize: 14.5,

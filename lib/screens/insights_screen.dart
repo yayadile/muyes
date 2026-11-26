@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,8 +8,10 @@ import '../models/insight.dart';
 import '../models/timeline_entry.dart';
 import '../providers.dart';
 import '../theme.dart';
+import '../widgets/bristol_bar_chart.dart';
 import '../widgets/insight_card.dart';
 import '../widgets/log_timeline.dart';
+import '../widgets/streamline_icons.dart';
 import 'log_food_screen.dart';
 import 'log_mules_screen.dart';
 import 'log_poop_screen.dart';
@@ -180,7 +181,7 @@ class _DataNoteCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('🌱', style: TextStyle(fontSize: 22)),
+            const SlIconView(SlIcon.sprout, size: 24),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -278,7 +279,7 @@ class _WeeklySummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Text('📋', style: TextStyle(fontSize: 22)),
+                const SlIconView(SlIcon.clipboard, size: 22),
                 const SizedBox(width: 8),
                 Text(
                   'Ringkasan 7 Hari Terakhir',
@@ -310,7 +311,7 @@ class _WeeklySummaryCard extends StatelessWidget {
             if (summary.avgFirstMealTime != null &&
                 summary.avgLastMealTime != null)
               _SummaryLine(
-                icon: '🕐',
+                icon: SlIcon.clock,
                 text:
                     'Jam makan rata-rata: mulai ~${summary.avgFirstMealTime}, '
                     'terakhir ~${summary.avgLastMealTime} — '
@@ -318,21 +319,29 @@ class _WeeklySummaryCard extends StatelessWidget {
               ),
             if (summary.topFoods.isNotEmpty)
               _SummaryLine(
-                icon: '🍽️',
+                icon: SlIcon.plate,
                 text:
                     'Paling sering: '
                     '${summary.topFoods.take(3).map((f) => '${f.name}${f.count > 1 ? " (${f.count}x)" : ""}').join(", ")}.',
               ),
             if (summary.topTrigger != null)
               _SummaryLine(
-                icon: '⚡',
+                icon: SlIcon.bolt,
                 text:
                     'Pemicu mules paling sering: ${summary.topTrigger!.trigger} '
                     '(${summary.topTrigger!.hitCount} dari '
-                    '${summary.topTrigger!.totalEpisodes} kejadian).',
+                    '${summary.topTrigger!.totalEpisodes} kejadian, ≈'
+                    '${summary.topTrigger!.lift.toStringAsFixed(1)}x).',
               ),
             const SizedBox(height: 8),
-            _BristolChart(summary: summary),
+            BristolBarChart(
+              distribution: summary.bristolDistribution,
+              emptyText: summary.totalPoop == 0
+                  ? 'Belum ada data eek minggu ini.'
+                  : 'Bristol belum diisi minggu ini — distribusi bentuk eek '
+                        'belum bisa dibaca. Isi Bristol biar analisanya lebih '
+                        'akurat.',
+            ),
             if (mainLine != null) ...[
               const SizedBox(height: 10),
               Container(
@@ -361,7 +370,7 @@ class _WeeklySummaryCard extends StatelessWidget {
   }
 
   static String _spreadText(double spread) {
-    if (spread <= 2) return 'teratur 👍';
+    if (spread <= 2) return 'teratur';
     if (spread <= 3) return 'lumayan';
     return 'lumayan lompat-lompat';
   }
@@ -405,7 +414,7 @@ class _SummaryStat extends StatelessWidget {
 class _SummaryLine extends StatelessWidget {
   const _SummaryLine({required this.icon, required this.text});
 
-  final String icon;
+  final SlIcon icon;
   final String text;
 
   @override
@@ -415,7 +424,10 @@ class _SummaryLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 15)),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: SlIconView(icon, size: 16),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -430,126 +442,6 @@ class _SummaryLine extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Bar chart sederhana distribusi Bristol minggu ini (spec §5.5C).
-/// Kalau Bristol jarang diisi → kalimat jujur, bukan chart kosong.
-class _BristolChart extends StatelessWidget {
-  const _BristolChart({required this.summary});
-
-  final WeeklySummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final distribution = summary.bristolDistribution;
-    if (distribution.isEmpty) {
-      final text = summary.totalPoop == 0
-          ? 'Belum ada data eek minggu ini.'
-          : 'Bristol belum diisi minggu ini — distribusi bentuk eek belum '
-                'bisa dibaca. Isi Bristol biar analisanya lebih akurat.';
-      return Text(
-        text,
-        style: TextStyle(
-          fontFamily: kBodyFont,
-          fontSize: 13,
-          fontStyle: FontStyle.italic,
-          color: MuyesColors.textDark.withValues(alpha: 0.6),
-        ),
-      );
-    }
-
-    final maxCount = distribution.values.reduce((a, b) => a > b ? a : b);
-    final sorted = distribution.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Distribusi Bristol (cuma yang keisi)',
-          style: TextStyle(
-            fontFamily: kBodyFont,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: MuyesColors.textDark.withValues(alpha: 0.75),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 120,
-          child: BarChart(
-            BarChartData(
-              maxY: (maxCount + 1).toDouble(),
-              alignment: BarChartAlignment.spaceAround,
-              gridData: const FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              barTouchData: BarTouchData(enabled: false),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(),
-                rightTitles: const AxisTitles(),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 24,
-                    interval: 1,
-                    getTitlesWidget: (value, meta) {
-                      if (value != value.roundToDouble()) {
-                        return const SizedBox.shrink();
-                      }
-                      return Text(
-                        '${value.toInt()}',
-                        style: TextStyle(
-                          fontFamily: kBodyFont,
-                          fontSize: 10,
-                          color: MuyesColors.textDark.withValues(alpha: 0.55),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 24,
-                    interval: 1,
-                    getTitlesWidget: (value, meta) => Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'B${value.toInt()}',
-                        style: TextStyle(
-                          fontFamily: kBodyFont,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: MuyesColors.textDark.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              barGroups: [
-                for (final entry in sorted)
-                  BarChartGroupData(
-                    x: entry.key,
-                    barRods: [
-                      BarChartRodData(
-                        toY: entry.value.toDouble(),
-                        width: 16,
-                        color: entry.key >= 6 || entry.key <= 2
-                            ? MuyesColors.yellow
-                            : MuyesColors.green,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(6),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

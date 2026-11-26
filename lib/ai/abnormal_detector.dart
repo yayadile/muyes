@@ -274,7 +274,7 @@ class AbnormalDetector {
           title: 'Pola eek normal',
           body: 'Pola eek kamu $days hari terakhir kelihatan normal — '
               '${poopLogs.length}x eek, mules ${episodes.length}x. '
-              'Pertahankan! 🎉',
+              'Pertahankan!',
           confidence: bristolAll.length >= poopLogs.length / 2
               ? InsightConfidence.tinggi
               : InsightConfidence.sedang,

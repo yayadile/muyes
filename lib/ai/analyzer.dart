@@ -111,14 +111,15 @@ class MuyesAnalyzer {
 class StomachStatus {
   const StomachStatus({
     required this.level,
-    required this.emoji,
     required this.title,
     required this.detail,
   });
 
   /// `info` / `warning` / `alert` — pakai warna yang sama dengan insight.
+  /// UI memetakan level ini ke ikon Streamline (jempol hijau / warning /
+  /// danger) lewat `slStatusIcon` — bukan emoji lagi (koreksi user,
+  /// 26 Nov 2026).
   final String level;
-  final String emoji;
   final String title;
   final String detail;
 }
@@ -146,7 +147,6 @@ StomachStatus stomachStatusForToday(MuyesAiInput input) {
   if (blood > 0) {
     return StomachStatus(
       level: InsightLevel.alert,
-      emoji: '🔴',
       title: 'Perlu perhatian: ada darah',
       detail: 'Ada darah di eek hari ini. Buka Insight buat detail + '
           'saran. Kalau berlanjut, pertimbangkan ke dokter.',
@@ -155,7 +155,6 @@ StomachStatus stomachStatusForToday(MuyesAiInput input) {
   if (black > 0) {
     return StomachStatus(
       level: InsightLevel.alert,
-      emoji: '🔴',
       title: 'Perlu perhatian: eek hitam',
       detail: 'Eek hitam bisa jadi tanda perdarahan saluran cerna '
           '(kecuali lagi minum zat besi). Pertimbangkan ke dokter.',
@@ -164,7 +163,6 @@ StomachStatus stomachStatusForToday(MuyesAiInput input) {
   if (diarrhea >= 3) {
     return StomachStatus(
       level: InsightLevel.alert,
-      emoji: '🔴',
       title: 'Waspada: diare $diarrhea kali hari ini',
       detail: 'Perbanyak cairan, hindari pemicu. Kalau berlanjut / ada '
           'darah / demam, pertimbangkan ke dokter.',
@@ -173,7 +171,6 @@ StomachStatus stomachStatusForToday(MuyesAiInput input) {
   if (mulesToday.length >= 4) {
     return StomachStatus(
       level: InsightLevel.warning,
-      emoji: '🟡',
       title: 'Waspada: mules ${mulesToday.length}x hari ini',
       detail: 'Cek makanan 12 jam terakhir di atas — ada pemicu yang '
           'kelihatan?',
@@ -182,7 +179,6 @@ StomachStatus stomachStatusForToday(MuyesAiInput input) {
   if (mulesToday.isNotEmpty || diarrhea > 0) {
     return StomachStatus(
       level: InsightLevel.warning,
-      emoji: '🟡',
       title: mulesToday.isNotEmpty
           ? 'Mules ${mulesToday.length}x hari ini'
           : 'Diare $diarrhea kali hari ini',
@@ -192,16 +188,14 @@ StomachStatus stomachStatusForToday(MuyesAiInput input) {
   if (poopToday.isEmpty) {
     return const StomachStatus(
       level: InsightLevel.info,
-      emoji: '🟢',
       title: 'Perut aman',
       detail: 'Belum ada keluhan tercatat hari ini.',
     );
   }
   return const StomachStatus(
     level: InsightLevel.info,
-    emoji: '🟢',
     title: 'Perut aman',
-    detail: 'Eek hari ini nggak ada keluhan tercatat. 🎉',
+    detail: 'Eek hari ini nggak ada keluhan tercatat.',
   );
 }
 
@@ -216,7 +210,6 @@ StomachStatus eatingStatusForToday(MuyesAiInput input) {
   if (input.food.isEmpty) {
     return const StomachStatus(
       level: InsightLevel.info,
-      emoji: '🟢',
       title: 'Belum ada catatan makan',
       detail: 'Catat makan pertamamu hari ini biar kebaca polanya.',
     );
@@ -231,7 +224,6 @@ StomachStatus eatingStatusForToday(MuyesAiInput input) {
   if (gap.inHours >= 14) {
     return StomachStatus(
       level: InsightLevel.warning,
-      emoji: '🟡',
       title: 'Terakhir makan ${gap.inHours} jam lalu',
       detail: 'Terakhir makan jam ${formatTimeId(lastMeal)}. Lupa catat '
           'atau memang belum makan? Kalau belum, coba isi yang ringan dulu.',
@@ -241,7 +233,6 @@ StomachStatus eatingStatusForToday(MuyesAiInput input) {
   if (gap.inHours >= 8 && !overnightRest) {
     return StomachStatus(
       level: InsightLevel.warning,
-      emoji: '🟡',
       title: 'Belum makan ${gap.inHours} jam',
       detail: 'Terakhir makan jam ${formatTimeId(lastMeal)}. Kalau memang '
           'belum makan, coba isi dulu. Kalau udah tapi lupa catat, isi ya.',
@@ -251,7 +242,6 @@ StomachStatus eatingStatusForToday(MuyesAiInput input) {
   if (foodToday.isEmpty) {
     return const StomachStatus(
       level: InsightLevel.info,
-      emoji: '🟢',
       title: 'Belum ada catatan makan hari ini',
       detail: 'Catat makan pertamamu hari ini biar kebaca polanya.',
     );
@@ -259,7 +249,6 @@ StomachStatus eatingStatusForToday(MuyesAiInput input) {
 
   return StomachStatus(
     level: InsightLevel.info,
-    emoji: '🟢',
     title: 'Baru makan ${foodToday.length}x hari ini',
     detail: 'Terakhir jam '
         '${formatTimeId(foodToday.last.eatenAt)}. '

@@ -9,11 +9,13 @@ import '../providers.dart';
 import '../theme.dart';
 import '../utils/date_utils.dart';
 import '../widgets/log_timeline.dart';
+import '../widgets/muyes_chip.dart';
 import '../widgets/time_field.dart';
 import 'calendar_screen.dart';
 import 'log_food_screen.dart';
 import 'log_mules_screen.dart';
 import 'log_poop_screen.dart';
+import 'stats_screen.dart';
 
 /// Filter daftar riwayat (spec §5.4).
 enum HistoryFilter { semua, makan, eek, mules }
@@ -54,6 +56,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       appBar: AppBar(
         title: const Text('Riwayat'),
         actions: [
+          IconButton(
+            tooltip: 'Statistik',
+            icon: const Icon(Icons.bar_chart_rounded),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const StatsScreen())),
+          ),
           IconButton(
             tooltip: 'Kalender',
             icon: const Icon(Icons.calendar_month_rounded),
@@ -98,7 +107,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   (HistoryFilter.eek, 'Eek'),
                   (HistoryFilter.mules, 'Mules'),
                 ]) ...[
-                  _FilterChip(
+                  MuyesChip(
                     label: label,
                     selected: _filter == value,
                     onTap: () => setState(() => _filter = value),
@@ -238,43 +247,5 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 }
 
-/// Chip filter gaya Duolingo — putih, border orange saat tidak aktif,
-/// orange penuh saat dipilih.
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? MuyesColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: MuyesColors.primary,
-            width: 2,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: kHeadingFont,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : MuyesColors.textDark,
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Chip filter gaya Duolingo — pakai [MuyesChip] (widget bersama di
+/// `widgets/muyes_chip.dart`).

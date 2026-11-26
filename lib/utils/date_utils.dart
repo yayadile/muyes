@@ -49,6 +49,9 @@ String formatTimeId(DateTime dt) =>
 String formatDateId(DateTime dt) =>
     '${_dayNames[dt.weekday - 1]}, ${dt.day} ${_monthNames[dt.month - 1]}';
 
+/// Nama hari singkat, mis. "Sen" — buat label diagram Statistik.
+String weekdayShortId(DateTime dt) => _dayNames[dt.weekday - 1];
+
 /// Tanggal lengkap Bahasa Indonesia, mis. "25 Nov 2026" (spec §8.1).
 String formatFullDateId(DateTime dt) =>
     '${dt.day} ${_monthNames[dt.month - 1]} ${dt.year}';

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../models/mules_log.dart';
+import 'streamline_icons.dart';
 
 /// Pilih level mules dengan 4 chip cepat (spec §5.2b).
 ///
 /// UI menampilkan kata (Ringan / Sedang / Parah / Nggak mules),
-/// bukan angka 0-5.
+/// bukan angka 0-5. Ikon muka dari Streamline (bukan emoji — koreksi
+/// user, 26 Nov 2026): 🙂 smile → 😖 sad → 😫 sick.
 class MulesLevelPicker extends StatelessWidget {
   const MulesLevelPicker({
     super.key,
@@ -33,7 +35,11 @@ class MulesLevelPicker extends StatelessWidget {
                 onSelected: (_) => onChanged(level),
                 avatar: level == 0
                     ? const Icon(Icons.check_circle_outline, size: 18)
-                    : Text(_emoji(level)),
+                    : SlIconView(
+                        _face(level),
+                        size: 18,
+                        color: _faceColor(level),
+                      ),
               ),
           ],
         ),
@@ -48,10 +54,16 @@ class MulesLevelPicker extends StatelessWidget {
     );
   }
 
-  static String _emoji(int level) => switch (level) {
-    <= 2 => '🙂',
-    3 => '😖',
-    _ => '😫',
+  static SlIcon _face(int level) => switch (level) {
+    <= 2 => SlIcon.smile,
+    3 => SlIcon.sad,
+    _ => SlIcon.sick,
+  };
+
+  static Color _faceColor(int level) => switch (level) {
+    <= 2 => const Color(0xFF2E7D32), // hijau — mules ringan
+    3 => const Color(0xFFB8860B), // kuning — sedang
+    _ => const Color(0xFFC0392B), // merah — parah
   };
 
   static String _hint(int level) => switch (level) {

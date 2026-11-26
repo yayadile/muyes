@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
+import 'streamline_icons.dart';
+
 /// Pilih level pedas 0-5 (spec §5.1). 0 = tidak pedas.
+///
+/// Ikon cabe dari Streamline (bukan emoji 🌶️ lagi — koreksi user,
+/// 26 Nov 2026), diwarnai merah biar kebaca sebagai "pedas".
 class SpicyPicker extends StatelessWidget {
   const SpicyPicker({super.key, required this.value, required this.onChanged});
 
   final int value;
   final ValueChanged<int> onChanged;
+
+  static const _chiliColor = Color(0xFFC0392B);
 
   @override
   Widget build(BuildContext context) {
@@ -23,17 +30,40 @@ class SpicyPicker extends StatelessWidget {
                 selected: value == level,
                 onSelected: (_) => onChanged(level),
                 avatar: level > 0
-                    ? Text('🌶️', style: theme.textTheme.bodySmall)
+                    ? const SlIconView(
+                        SlIcon.chili,
+                        size: 16,
+                        color: _chiliColor,
+                      )
                     : null,
               ),
           ],
         ),
         const SizedBox(height: 6),
-        Text(
-          value == 0
-              ? '0 = nggak pedas'
-              : '${'🌶️' * value} level $value — ${_spicyDescription(value)}',
-          style: theme.textTheme.bodySmall,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (value > 0) ...[
+              for (var i = 0; i < value; i++)
+                const Padding(
+                  padding: EdgeInsets.only(right: 2),
+                  child: SlIconView(
+                    SlIcon.chili,
+                    size: 16,
+                    color: _chiliColor,
+                  ),
+                ),
+              const SizedBox(width: 6),
+            ],
+            Expanded(
+              child: Text(
+                value == 0
+                    ? '0 = nggak pedas'
+                    : 'level $value — ${_spicyDescription(value)}',
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ],
         ),
       ],
     );

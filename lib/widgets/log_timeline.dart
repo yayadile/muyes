@@ -6,6 +6,7 @@ import '../models/timeline_entry.dart';
 import '../theme.dart';
 import '../utils/date_utils.dart';
 import 'muyes_icons.dart';
+import 'streamline_icons.dart';
 
 /// Timeline — gabungan makan + eek + mules, urut waktu (spec §5.3).
 ///
@@ -56,7 +57,7 @@ class _EmptyTimeline extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Text('🌱', style: TextStyle(fontSize: 32)),
+            const SlIconView(SlIcon.sprout, size: 36),
             const SizedBox(height: 8),
             const Text(
               'Belum ada catatan hari ini.',

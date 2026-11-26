@@ -63,6 +63,12 @@ class InsightDao {
     );
   }
 
+  /// Hapus semua insight — dipakai reset data contoh biar hasil analisa
+  /// lama (dari data yang sudah dihapus) nggak nyangkut di DB.
+  Future<void> deleteAll() async {
+    await _db.delete(_db.insights).go();
+  }
+
   Future<void> deleteById(String id) async {
     await (_db.delete(_db.insights)..where((t) => t.id.equals(id))).go();
   }

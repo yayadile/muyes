@@ -8,6 +8,7 @@ import 'models/food_log.dart';
 import 'models/mules_log.dart';
 import 'models/poop_log.dart';
 import 'models/timeline_entry.dart';
+import 'utils/stats_calculator.dart';
 
 /// Database lokal — satu instance untuk seluruh app.
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -133,6 +134,13 @@ final fastingModeProvider = StreamProvider<bool>(
       ref.watch(appDatabaseProvider).watchBoolSetting(SettingKeys.fastingMode),
 );
 
+/// Data contoh (spec §10) sedang terpasang? Buat tombol Isi/Hapus di
+/// Settings.
+final demoSeededProvider = StreamProvider<bool>(
+  (ref) =>
+      ref.watch(appDatabaseProvider).watchBoolSetting(SettingKeys.demoSeeded),
+);
+
 /// Log makan 30 hari terakhir — bahan analisa AI.
 final aiFoodLogsProvider = StreamProvider<List<FoodLog>>(
   (ref) => ref.watch(foodLogDaoProvider).watchLastDays(aiWindowDays),
@@ -205,3 +213,23 @@ final stomachStatusProvider = Provider.autoDispose<AsyncValue<StomachStatus>>(
 final eatingStatusProvider = Provider.autoDispose<AsyncValue<StomachStatus>>(
   (ref) => ref.watch(aiInputProvider).whenData(eatingStatusForToday),
 );
+
+// ---- Statistik (halaman diagram, spec §8.1) ----
+
+/// Rentang halaman Statistik: 7 atau 30 hari.
+class StatsRange extends Notifier<int> {
+  @override
+  int build() => 7;
+
+  void select(int days) => state = days;
+}
+
+final statsRangeProvider = NotifierProvider<StatsRange, int>(StatsRange.new);
+
+/// Semua angka + diagram halaman Statistik, dari data 30 hari terakhir.
+final statsProvider = Provider.autoDispose<AsyncValue<MuyesStats>>((ref) {
+  final days = ref.watch(statsRangeProvider);
+  return ref.watch(aiInputProvider).whenData(
+    (input) => buildStats(input, days: days),
+  );
+});

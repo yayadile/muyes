@@ -194,6 +194,7 @@ AI harus tahan data kosong (karena Bristol + detail lain opsional): kalau Bristo
 Jangan pernah kasih diagnosis penyakit ("kamu kena X"). Bahasanya selalu pola + kemungkinan + saran umum + "pertimbangkan ke dokter" untuk yang merah.
 Semua teks insight dalam Bahasa Indonesia, santai, tidak menakut-nakuti.
 Akses halaman Insights (keputusan Phase 5): bottom nav tetap 3 tab (Beranda / Riwayat / Pengaturan per §8.1) — Insights dibuka dari (1) ikon ✨ di header Home dan (2) tap kartu "Kata AI Hari Ini" di Home. Insight di-generate ulang tiap ada log baru (watch stream 30 hari → analyzer → upsert ke tabel insights, id deterministik tanpa duplikat; status "sudah dibaca" tidak ke-reset saat re-generate).
+Halaman Statistik (tambahan user, 26 Nov 2026 — §8.1 stats): dibuka dari ikon bar chart di header Riwayat (bottom nav tetap 3 tab). Isi: pemilih rentang 7/30 hari; kartu ringkasan (total makan/eek/mules + rata-rata per hari, pembagi = hari yang tercatat biar jujur); diagram lingkar (donut) proporsi catatan; diagram batang bertumpuk per hari (orange makan / coklat eek / hijau mules, tap → tooltip tanggal + rincian); distribusi Bristol (widget bersama bristol_bar_chart.dart, dipakai juga di Insights); top 5 makanan paling sering. Semua hitungan lokal, murni dari catatan user (lib/utils/stats_calculator.dart — tanpa DB, bisa dites langsung); null Bristol tetap tidak dihitung. Data kosong → kartu ajakan catat, bukan diagram kosong.
 5.6 Settings / Data
 Export data (CSV / JSON) — untuk backup
 Import data (dari export sebelumnya)
@@ -201,6 +202,11 @@ Hapus semua data (dengan konfirmasi 2x)
 Reminder opsional: "Ingatkan catat makan siang jam 12" / "Ingatkan review harian jam 21" (default OFF)
 Toggle "Mode Puasa / Intermittent Fasting" (default OFF): kalau ON, rule skip-makan + gap panjang di Deteksi Pola Makan Abnormal dimatikan
 Tentang + Disclaimer medis
+
+Keputusan implementasi Phase 6 (25 Nov 2026):
+Ekspor JSON = backup lengkap (1 file, bisa diimpor balik via "Impor Data" — merge by id, data lama tidak dihapus). Ekspor CSV = 3 file (makan/eek/mules) untuk dibuka di Excel/Sheets, bukan untuk impor. File dibagikan lewat share sheet (share_plus) dari temp dir (path_provider); impor pakai file picker (file_selector, ekstensi .json). Backup JSON punya penanda app+version ("muyes", version 1) — file asing ditolak dengan pesan jelas.
+Data contoh (§10) pakai prefix id "demo-" + setting "demo_seeded"; tombol Isi/Hapus data contoh menghapus HANYA baris prefix itu. Seed deterministik kalau dijalankan dengan `now` tetap, dan log yang jatuh di masa depan (mis. sarapan hari ini saat seed dijalankan pagi) otomatis di-skip.
+Reminder TIDAK dibangun di V1 — spec sendiri bilang "opsional di MVP" (line 27). Toggle-nya tidak ditampilkan biar tidak ada UI palsu. Bisa ditambah nanti kalau diminta.
 6. Model Data
 // FoodLog
 id: String (uuid)
@@ -309,6 +315,7 @@ Header: "Hari Ini" + tanggal, contoh "27 Sept 2026" — putih, bold, di atas bac
 Kartu Stats (putih, rounded 24dp):
 Baris atas: 3 kolom ikon + angka count hari ini — Eek (ikon eek coklat lucu bermata), Makan (ikon muka putih), Mules (ikon hijau dengan zigzag)
 Di bawahnya: 3 baris Terakhir Makan | <waktu>, Terakhir Eek | <waktu>, Terakhir Mules | <waktu> — kalau waktunya hari ini tulis "Hari ini, 19:56", kemarin "Kemarin, 19:56"; kalau lebih lama dari kemarin baru tanggal lengkap "27 Sept 2026, 19:56" (koreksi user, 25 Nov 2026). Kalau belum ada log, tampilkan -, JANGAN "Bla bla" dan jangan data palsu.
+Koreksi user (26 Nov 2026): baris Terakhir itu DASHBOARD — kalau user pindah tanggal, baris ini tetap menunjuk catatan TERAKHIR SAMPAI tanggal yang dilihat (lookback), bukan cuma log di hari terpilih. Contoh: lihat 24 Nov → tampil catatan terakhir 20 Nov "20 Nov 2026, 08:30". Angka count 3 ikon tetap khusus hari terpilih. Kalau belum ada log sampai tanggal itu → "-".
 Kartu Aksi (putih, rounded 24dp):
 Judul tengah: "Catat makan, eek, dan mules!" + divider orange tipis
 3 tombol sejajar, sama besar: + Eek, + Makan, + Mules — background putih, border orange 2dp, rounded 16dp, ikon 48dp di atas, label bold di bawah
@@ -328,6 +335,8 @@ Daftarkan di pubspec.yaml:
     assets:
       - assets/icons/
 Tambah package flutter_svg di pubspec.yaml, pakai SvgPicture.asset('assets/icons/meal.svg') di Flutter. Jangan pakai Image.asset untuk SVG.
+Koreksi user (26 Nov 2026) — semua emoji di UI DIGANTI ikon Streamline: aset SVG diunduh lewat Streamline MCP (plugin sudah terpasang di opencode, server https://public-api.streamlinehq.com/mcp). Keluarga yang dipakai: Phosphor (open-source, gratis penuh, rounded) set phosphor-fill — konsisten satu gaya untuk semua ikon. Taruh di assets/streamline/ (robot, thumbs-up, warning, danger, chili, smile, sad, sick, sprout, clipboard, clock, plate, bolt, info, celebrate), pakai lewat SlIcon / SlIconView / SlIconLine (lib/widgets/streamline_icons.dart) di seluruh screen. Aturan warna: status AI — info = jempol HIJAU, warning = kuning, alert = merah (helper slStatusIcon). Pemetaan: 🤖→robot (kartu AI + tombol header), 🟢→thumbs-up, 🟡→warning, 🔴→danger, 🌶️→chili (merah), 🙂😖😫→smile/sad/sick (hijau/kuning/merah), 🌱→sprout, 📋→clipboard, 🕐→clock, 🍽️→plate, ⚡→bolt, ℹ️→info, 🎉👍→teks biasa (baby step "Mantap!"/"Pertahankan!" tanpa emoji). Pilihan set dicatat di .streamline-icons.md.
+Pemilihan set: keluarga Plump (paling pas gaya friendly-rounded app ini) ternyata butuh langganan berbayar untuk mayoritas ikon (pepper/sick face cuma premium; akun free plan ditolak saat download) — jadi dipakai Phosphor Fill yang gratis penuh, lengkap, dan tetap friendly/rounded. Kalau user punya langganan Streamline, tinggal unduh versi Plump Solid dan tukar file SVG-nya (nama file sama, kode nggak berubah).
 Export dari Figma: pilih frame ikon → Export SVG, 1x. Pastikan ikon flat, outline tebal, background transparan, ukuran canvas konsisten (misal 120x120px) biar ketiganya sejajar di Home.
 App launcher icon — 25 Nov 2026:
 Sumber: assets/icons/logo-muyes.png (maskot Muyes). Generate ikon Android (legacy mipmap + adaptive icon mipmap-anydpi-v26) + iOS AppIcon.appiconset lewat tool/generate_app_icons.py (butuh Python + Pillow). Android adaptive background: orange #FFA63D (color ic_launcher_background).
@@ -340,7 +349,7 @@ Yang TIDAK boleh dicopy dari mock:
 "Hari Ini..." — tulis "Hari Ini" + tanggal lengkap (tanpa ellipsis)
 Angka 0 yang statis — count harus dari DB hari ini
 8.2 Aturan Umum
-Tone: Santai, lucu dikit, tidak jijik, tidak medis-kaku. Emoji boleh, tapi jangan berlebihan.
+Tone: Santai, lucu dikit, tidak jijik, tidak medis-kaku.
 Bristol Picker: Wajib visual — 7 pilihan dengan gambar/ikon bentuk + deskripsi, bukan dropdown angka doang.
 Quick-log: Form makan & eek harus bisa selesai dalam 3 tap untuk kasus umum (waktu = sekarang, isi field wajib doang, simpan). Form eek paling minimal: 1 tap Simpan doang kalau cuma mau catat jam.
 Tidak ada onboarding panjang. Buka app → langsung Home. Penjelasan Bristol muncul saat pertama kali log eek.
@@ -370,6 +379,11 @@ Pola sengaja: tiap makan pedas level 4-5, 6-10 jam kemudian mules 3-4 + Bristol 
 3 hari tanpa eek di minggu ke-2 (untuk test konstipasi)
 Pola makan abnormal sengaja: 2 hari cuma makan 1x/hari, 3x makan berat jam 23:30 dalam seminggu, 1 hari makan 6x, 1 hari kopi 4x (untuk test eating pattern detector)
 Tombol "Hapus data contoh" harus ada.
+
+Implementasi Phase 6 (25 Nov 2026) — kalibrasi aktual terhadap rule AI:
+6 hari pedas (hari 1/3/6/8/10/12): siang level 4-5, jam 19:00 mules 3-4 + jam 19:25 Bristol 6 (dedup <30 menit = 1 kejadian). Hari 7 sengaja episode Bristol 6 TANPA pedas → korelasi 7 hari berbunyi "Pedas muncul di 3 dari 4 kejadian" (persis contoh spec) dan 30 hari "6 dari 15".
+Diare 4x Bristol 7 dua hari berturut (hari 4-5, buat alert merah berulang); 1 log hasBlood (hari 9). Hari 4-5 sekaligus jadi 2 hari "makan 1x" versi asli, tapi karena detector pola makan cuma baca 7 hari, pola "makan 1x 2 hari" sengaja ditaruh di hari 9-10 (dalam jendela 7 hari). Ngemil 2 hari = hari 11 (7 log, termasuk 4x kopi) & hari 12 (6 log); makan berat 23:30 = hari 7/11/12 (3x).
+Hari 11-13 tanpa log eek → "Belum eek 3 hari". 2 log eek sengaja cuma diisi waktu (Bristol null, hari 0 & 2) untuk uji null-semantics. Semua jam 12:30-an siang, 19:00-an malam, biar deterministik; log masa depan otomatis di-skip. Total: 41 makan, 22 eek, 6 mules (variasi ±1 kalau seed dijalankan pagi).
 11. Yang TIDAK Termasuk V1 (Jangan Dibangun Dulu)
 Akun / login / sync cloud
 Foto makanan dengan AI recognition
@@ -387,3 +401,15 @@ Kalau agent mau nambah fitur di luar daftar di atas, suruh tanya dulu.
 Nama final app: Muyes
 Platform: Android + iOS
 Foto makanan: Skip di V1
+
+14. Statistik Korelasi 2x2 (Keputusan 26 Nov 2026 — Sudah Diimplementasi)
+Rombakan `lib/ai/correlation.dart`: korelasi pemicu → mules/diare bukan cuma hitung "berapa kejadian yang ada pemicunya" (sisi a doang), tapi 2x2 dua sisi:
+- Sisi kejadian: hitCount / totalEpisodes (format lama "3 dari 4" DIPERTAHANKAN — acceptance §9 & data demo tetap valid).
+- Sisi pemakaian (denominator): dari exposureCount x makan pemicu ini, berapa kali diikuti kejadian; dibanding makanan lain (otherExposureHits/otherExposureCount).
+Rate dihaluskan Laplace smoothing (+1/+2) → tahan fluktuasi sampel kecil.
+Confidence pakai batas bawah interval Wilson (95%), bukan threshold mentah: sampel kecil otomatis "Rendah" walau rasionya 100%; "Tinggi" butuh sampel banyak + lift ≥1.5 + jelas di atas baseline. Fungsi `wilsonLowerBound()` bisa dites langsung.
+Lift = rate pemicu (halus) / rate makanan lain (halus) — insight jadi "≈2.6x dibanding makanan lain", bukan sok yakin.
+GATE TAMPIL lebih ketat: minimal 2 kejadian + lift > 1.0 (pemicu yang sering dimakan tanpa efek = bukan sinyal, nggak dilaporin). Contoh: pedas dimakan 20x, mules 4x → dulu "4 dari 4", sekarang dibanding baseline dan bisa gugur.
+Pemicu kembar (set kejadian overlap ≥75% & ≥2 kejadian bareng) digabung jadi 1 hasil: primary = paling kuat, sisanya di `coTriggers` → body nambah catatan "sering muncul bareng X, belum bisa dipisah", UI tidak menampilkan kartu kembar. Urutan hasil: lift desc → hitCount desc → exposureCount desc → urutan TriggerKind.all (deterministik).
+Semua teks tetap Bahasa Indonesia santai + "Bukan diagnosis ya" + angka pendukung + evidenceLogIds tetap lengkap (spec aturan AI §5.5 tidak berubah).
+Implikasi arsitektur V2 (belum dibangun, catatan arah saja): kalau data sudah ratusan episode, baru pertimbangkan regresi logistik L2 pure Dart sebagai re-ranker/penguat korelasi rules — bukan pengganti; dijalankan lokal (tanpa internet), di isolate, hasil cuma nge-rank; tier merah (darah/hitam/diare berulang) tetap hardcode rule, tidak boleh disentuh model; backtest 60/30 hari sebagai gate aktivasi. Diputuskan: tetap zero-collection (Jalur A), no crash reporting, no LLM di V1 release.

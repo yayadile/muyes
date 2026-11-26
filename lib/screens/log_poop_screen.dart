@@ -9,6 +9,7 @@ import '../utils/uuid_utils.dart';
 import '../widgets/bristol_picker.dart';
 import '../widgets/duo_button.dart';
 import '../widgets/muyes_icons.dart';
+import '../widgets/streamline_icons.dart';
 import '../widgets/time_field.dart';
 
 /// Form cepat catat eek (spec §5.2).
@@ -253,7 +254,12 @@ class _BristolIntroCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Text('ℹ️ '),
+                const SlIconView(
+                  SlIcon.info,
+                  size: 18,
+                  color: Color(0xFFFFA63D),
+                ),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'Bristol itu apa?',

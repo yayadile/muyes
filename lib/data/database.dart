@@ -28,6 +28,10 @@ abstract final class SettingKeys {
 
   /// Sudah pernah lihat penjelasan Bristol saat pertama kali log eek.
   static const seenBristolIntro = 'seen_bristol_intro';
+
+  /// Data contoh (seed §10) sedang terpasang — buat tombol
+  /// "Hapus data contoh" di Settings.
+  static const demoSeeded = 'demo_seeded';
 }
 
 /// Converter `List<String>` ↔ JSON array text.

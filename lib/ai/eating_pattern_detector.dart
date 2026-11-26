@@ -380,7 +380,7 @@ class EatingPatternDetector {
         title: 'Pola makan teratur',
         body: 'Pola makan kamu $days hari terakhir teratur — rata-rata '
             '${avg.toStringAsFixed(1)}x makan/hari, nggak ada makan berat '
-            'larut malam. Mantap 🎉',
+            'larut malam. Mantap!',
         confidence: InsightConfidence.sedang,
         evidence: food.map((l) => l.id).toList(growable: false),
       ),

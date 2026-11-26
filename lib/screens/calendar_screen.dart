@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../utils/date_utils.dart';
 import '../utils/day_summary.dart';
 import '../widgets/log_timeline.dart';
+import '../widgets/streamline_icons.dart';
 import '../widgets/time_field.dart';
 import 'log_food_screen.dart';
 import 'log_mules_screen.dart';
@@ -216,13 +217,43 @@ class _CalendarBody extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              _statusLabel(computeDayStatus(dayEntries)),
-              style: TextStyle(
-                fontFamily: kBodyFont,
-                fontSize: 14,
-                color: MuyesColors.textDark.withValues(alpha: 0.75),
-              ),
+            Builder(
+              builder: (context) {
+                final status = computeDayStatus(dayEntries);
+                final (icon, color) = status == null
+                    ? (SlIcon.info, MuyesColors.textDark)
+                    : switch (status) {
+                        DayStatus.normal => (
+                          SlIcon.thumbsUp,
+                          MuyesColors.green,
+                        ),
+                        DayStatus.waspada => (
+                          SlIcon.warning,
+                          MuyesColors.yellow,
+                        ),
+                        DayStatus.abnormal => (
+                          SlIcon.danger,
+                          MuyesColors.red,
+                        ),
+                      };
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SlIconView(icon, size: 16, color: color),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _statusLabel(status),
+                        style: TextStyle(
+                          fontFamily: kBodyFont,
+                          fontSize: 14,
+                          color: MuyesColors.textDark.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             if (dayEntries.isEmpty)
@@ -278,9 +309,9 @@ class _CalendarBody extends ConsumerWidget {
   }
 
   static String _statusLabel(DayStatus? status) => switch (status) {
-    DayStatus.normal => '🟢 Pola hari ini kelihatan normal',
-    DayStatus.waspada => '🟡 Ada yang perlu diperhatikan',
-    DayStatus.abnormal => '🔴 Ada tanda yang perlu diwaspadai',
+    DayStatus.normal => 'Pola hari ini kelihatan normal',
+    DayStatus.waspada => 'Ada yang perlu diperhatikan',
+    DayStatus.abnormal => 'Ada tanda yang perlu diwaspadai',
     null => 'Belum ada catatan',
   };
 }

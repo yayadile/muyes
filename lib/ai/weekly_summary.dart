@@ -155,7 +155,7 @@ Insight weeklySummaryInsight(MuyesAiInput input, {int days = 7}) {
 
   if (summary.avgFirstMealTime != null && summary.avgLastMealTime != null) {
     final keteraturan = summary.firstMealSpreadHours <= 2
-        ? 'teratur 👍'
+        ? 'teratur'
         : summary.firstMealSpreadHours <= 3
         ? 'lumayan'
         : 'lumayan lompat-lompat';
@@ -190,7 +190,8 @@ Insight weeklySummaryInsight(MuyesAiInput input, {int days = 7}) {
       'Pemicu yang paling sering muncul bareng mules: '
       '${summary.topTrigger!.trigger} '
       '(${summary.topTrigger!.hitCount} dari '
-      '${summary.topTrigger!.totalEpisodes} kejadian).',
+      '${summary.topTrigger!.totalEpisodes} kejadian, '
+      '≈${summary.topTrigger!.lift.toStringAsFixed(1)}x dibanding makanan lain).',
     );
   }
 
@@ -246,7 +247,9 @@ String? mainInsightLine(
         '${summary.topTrigger!.trigger} dulu — '
         '${summary.topTrigger!.hitCount} dari '
         '${summary.topTrigger!.totalEpisodes} kejadian mulesmu '
-        'kebetulan habis itu.';
+        'kebetulan habis itu (≈'
+        '${summary.topTrigger!.lift.toStringAsFixed(1)}x lebih sering '
+        'dibanding makanan lain).';
   }
 
   // Pola makan bermasalah.
